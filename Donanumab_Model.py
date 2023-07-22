@@ -85,14 +85,7 @@ model = load_model('models/Donanemab impact.stmx')
 # Set up your sliders
 if model is not None:
     # Set the default value of the progression slider
-    st.sidebar.write('Risk of progressing MCI to diagnosis per year')
-    progression_slider = st.sidebar.slider('',
-                                           min_value=0.0,
-                                           max_value=1.0,
-                                           value=0.5,
-                                           step=0.05,
-                                           format="%.2f",
-                                           key="progression_slider")
+    st.sidebar.title('Variable Sliders')
 
     # Set the default value of the uptake of Donanemab MCI slider
     st.sidebar.write('Uptake of Donanemab MCI')
@@ -113,6 +106,15 @@ if model is not None:
                                          step=0.05,
                                          format="%.2f",
                                          key="uptake_ad_slider")
+    
+    st.sidebar.write('Risk of progressing MCI to diagnosis per year')
+    progression_slider = st.sidebar.slider('',
+                                           min_value=0.0,
+                                           max_value=1.0,
+                                           value=0.5,
+                                           step=0.05,
+                                           format="%.2f",
+                                           key="progression_slider")
 
     # Simulate the model and plot the results
     results = simulate_model(model, str(progression_slider), str(uptake_mci_slider), str(uptake_ad_slider))  # Convert to string
