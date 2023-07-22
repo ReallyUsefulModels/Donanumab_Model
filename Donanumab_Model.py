@@ -17,71 +17,102 @@ def load_model(model_path):
         return None
     return model
 
-# Function to simulate the model
-def simulate_model(model, progression_val, uptake_mci, uptake_early_ad):
-    # Clearing the last run and compiling exporting the result
+def _run_simulation(model, start, end, sim_time):
+    # Set the simulation specs
+    model.sim_specs['initial_time'] = start
+    model.sim_specs['final_time'] = end
+    model.sim_specs['simulation_time'] = sim_time
+
+    # Clear the previous run
+    model.clear_last_run()
+
+    # Run the simulation
+    model.simulate()
+
+    # Get the results
+    results = model.export_simulation_result()
+    results = pd.DataFrame.from_dict(results)
+    results['Years'] = [year * 1 for year in results['Years']]
+
+    return results
+
+def update_model(model, progression_val, uptake_mci, uptake_early_ad):
+
+    # Clear the previous run
     model.clear_last_run()
 
     # Update variables
     model.aux_equations['Risk_of_progressing_MCI_to_diagnosis_pa'] = progression_val
+    model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_mci
+    model.aux_equations['Uptake_of_Donanemab_early_stage_AD'] = uptake_early_ad
 
-    # Simulate the model up to year 5 and get the results
-    model.simulate()
-    results = model.export_simulation_result()
+    # Run the simulation for the first 5 years
+    results_first_5_years = _run_simulation(model, 0, 0.25, 20)
 
-    # Convert the 'time' units
-    results['Years'] = [year * 1 for year in results['Years']]
+    # Prepare a dataframe to store results
+    df = pd.DataFrame(results_first_5_years)
 
-    # Set the initial graph function values up to year 5
-    uptake_mci_initial = results['Uptake_of_Donanemab_MCI'][0]
-    uptake_early_ad_initial = results['Uptake_of_Donanemab_early_stage_AD'][0]
+    # Start from year 6 to 21
+    for year in range(20, 20):
+        # Clear the previous run
+        model.clear_last_run()
 
-    # Initialize lists to store graph function values
-    uptake_mci_values = [uptake_mci_initial]
-    uptake_early_ad_values = [uptake_early_ad_initial]
+        # Run the simulation for the first 5 years
+        model = _run_simulation(model, 0, 0.25, 20)
 
-    # Initialize list to store DataFrame results for each year of simulation
-    dfs = [pd.DataFrame(results)]  # Convert initial dictionary to DataFrame
+        model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_mci
+        model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_early_ad
 
-    # Simulate the model from year 6 to 20 and update graph function values
-    for year in range(6, 21):
-        if year > 5:
-            # Update graph function values based on sliders after year 5
-            uptake_mci_values.append(uptake_mci_values[-1] + float(uptake_mci))
-            uptake_early_ad_values.append(uptake_early_ad_values[-1] + float(uptake_early_ad))
+        results_year = _run_simulation(model, year - 1, year, 1)
 
-        # Set the graph function values for the current year of simulation
-        model.graph_functions['Uptake_of_Donanemab_MCI'].xpts = [year]
-        model.graph_functions['Uptake_of_Donanemab_MCI'].ypts = [uptake_mci_values[-1]]
+        # # Update graph function values based on sliders after year 5
+        # model.graph_functions['Uptake_of_Donanemab_MCI'].xpts = np.array([year])
+        # model.graph_functions['Uptake_of_Donanemab_MCI'].ypts = np.array([model.graph_functions['Uptake_of_Donanemab_MCI'].ypts[-1] + float(uptake_mci)])
 
-        model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].xpts = [year]
-        model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].ypts = [uptake_early_ad_values[-1]]
+        # model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].xpts = np.array([year])
+        # model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].ypts = np.array([model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].ypts[-1] + float(uptake_early_ad)])
 
-        # Simulate the model for the current year and get the results
-        model.simulate()
-        results_after_year = model.export_simulation_result()
+        # Simulate the model for one year at a time
+        results_year = _run_simulation(model, year - 1, year, 1)
 
-        # Convert the 'time' units for the current year's results
-        results_after_year['Years'] = [year * 1 for year in results_after_year['Years']]
+        # Append results to the dataframe
+        df = pd.concat([df, pd.DataFrame(results_year)], ignore_index=True)
 
-        # Convert results_after_year to a DataFrame and append it to the list of DataFrames
-        dfs.append(pd.DataFrame(results_after_year))
+    # Ensure 'Years' is unique and increasing
+    df['Years'] = df.index + 1
 
-    # Concatenate all DataFrames for each year of simulation
-    results = pd.concat(dfs, ignore_index=True)
+    return df
 
-    return results
+def plot_simulation(df):
+    # Initialize the plot with the first set of data
+    p = figure(width=800, height=250)
+    p.line(x='Years', y='Diagnosed_early_stage_AD', source=df, line_width=2)
+
+    # Update the plot with new data from each subsequent simulation
+    def update_plot(attr, old, new):
+        # Get new data
+        df_new = update_model(model, progression_slider.value, uptake_mci_slider.value, uptake_early_ad_slider.value)
+
+        # Update data source for plot
+        p.line(x='Years', y='Diagnosed_early_stage_AD', source=df_new, line_width=2)
+
+    # Add interactivity
+    progression_slider.on_change('value', update_plot)
+    uptake_mci_slider.on_change('value', update_plot)
+    uptake_early_ad_slider.on_change('value', update_plot)
+
+    return p
+
 
 # Function to plot the results with custom x-axis ticks
-def plot_results(df):
+def plot_results(df, fig):
     df_outcomes = df[["Percent_change_in_late_stage_dementia_prevalence", "Percent_change_in_prevalence_of_diagnosed_dementia", "Percent_change_in_early_stage_diagnosed_dementia_prevalence"]]
-    df_time = df[['Years']]
 
     # Calculate percent change from baseline (100)
     df_outcomes = df_outcomes - 100
 
-    # Now specify the columns directly
-    fig = go.Figure()
+    # Convert the 'Years' column to numerical values
+    df['Years'] = pd.to_numeric(df['Years'])
 
     # Add traces for each outcome
     for column in df_outcomes.columns:
@@ -93,10 +124,15 @@ def plot_results(df):
     # Set the y-axis title
     fig.update_yaxes(title_text='Percent Change (%) in Prevalence')
 
-    # Set the x-axis ticks to show only the years from 0 to 20
-    x_ticks = list(range(0, 21, 3))
+    # Customize x-axis ticks and labels in 10-year and 20-year increments
+    max_years = int(df['Years'].max())
+    x_ticks = list(range(0, max_years + 1, 3))
     x_labels = [f'{year} years' for year in x_ticks]
+
     fig.update_xaxes(ticks='outside', tickvals=x_ticks, ticktext=x_labels)
+
+    # Set the x-axis range explicitly to cover the entire simulation period
+    fig.update_xaxes(range=[0, max_years])
 
     # Move the legend below the plot
     fig.update_layout(legend=dict(orientation='h', x=0, y=-0.25))
@@ -105,6 +141,7 @@ def plot_results(df):
     fig.update_layout(title_text='Impact of Donanemab on Dementia Prevalence Over Time')
 
     return fig
+
 
 # Streamlit App
 st.title('RUM Donanumab Model')
@@ -117,6 +154,9 @@ st.write("In this model, we simulate a population of 100,000 individuals, with t
 
 # Load the model
 model = load_model('models/Donanemab impact.stmx')
+
+# Create the go.Figure() object once outside the plot_results function
+fig = go.Figure()
 
 # Set up your sliders
 if model is not None:
@@ -153,11 +193,11 @@ if model is not None:
                                            key="progression_slider")
 
     # Simulate the model and plot the results
-    results = simulate_model(model, str(progression_slider), str(uptake_mci_slider), str(uptake_ad_slider))  # Convert to string
+    results = update_model(model, str(progression_slider), str(uptake_mci_slider), str(uptake_ad_slider))
     df = pd.DataFrame(results)
 
     # Display the results plot
-    fig = plot_results(df)
+    plot_results(df, fig)  # Pass the fig object to the function
     st.plotly_chart(fig)
 
 st.write("We simulate the population over 20 years, introducing Donanemab in year five. The model incorporates a 35% reduction in the risk of progression from MCI to mild and mild to severe dementia, as evidenced in the trial. Additionally, we consider that the drug only applies to Alzheimer's and may not achieve 100% coverage. The model reflects a gradual uptake of Donanemab, taking 3 years to treat 50% of all MCI patients and 70% of people with mild Alzheimer's.")
