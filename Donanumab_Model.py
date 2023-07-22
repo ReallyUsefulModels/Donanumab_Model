@@ -54,7 +54,7 @@ def update_model(model, progression_val, uptake_mci, uptake_early_ad):
     df = pd.DataFrame(results_first_5_years)
 
     # Start from year 6 to 21
-    for year in range(20, 20):
+    for _ in range(20, 20):
         # Clear the previous run
         model.clear_last_run()
 
