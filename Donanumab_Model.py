@@ -104,6 +104,7 @@ def plot_results(df, fig):
 
     # Convert the 'Years' column to numerical values
     df['Years'] = pd.to_numeric(df['Years'])
+    df['Years'] = df.index / 4
 
     # Add traces for each outcome
     for column in df_outcomes.columns:
