@@ -7,4 +7,4 @@ To play with the model please go here: (https://donanumabmodel.streamlit.app/)
 
 To submit a pull request to improve it please do so! To protect the working app pull requests are required from branches to merge to master.
 
-Let's build a open-source story around this to get the discussion going.
+The model is still in alpha so if you discover a problem please submit an issue on the github repo.
