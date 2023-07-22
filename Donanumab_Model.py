@@ -17,11 +17,13 @@ def load_model(model_path):
         return None
     return model
 
-def _run_simulation(model, start, end, sim_time):
+def _run_simulation(model, initial_time, current_time, dt, sim_time, time_units):
     # Set the simulation specs
-    model.sim_specs['initial_time'] = start
-    model.sim_specs['final_time'] = end
+    model.sim_specs['initial_time'] = initial_time
+    model.sim_specs['current_time'] = current_time
+    model.sim_specs['dt'] = dt
     model.sim_specs['simulation_time'] = sim_time
+    model.sim_specs['time_units'] = time_units
 
     # Clear the previous run
     model.clear_last_run()
@@ -37,17 +39,16 @@ def _run_simulation(model, start, end, sim_time):
     return results
 
 def update_model(model, progression_val, uptake_mci, uptake_early_ad):
-
     # Clear the previous run
     model.clear_last_run()
 
     # Update variables
     model.aux_equations['Risk_of_progressing_MCI_to_diagnosis_pa'] = progression_val
     model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_mci
-    model.aux_equations['Uptake_of_Donanemab_early_stage_AD'] = uptake_early_ad
+    model.aux_equations['Uptake_of_Donanemab_Early_AD'] = uptake_early_ad  
 
     # Run the simulation for the first 5 years
-    results_first_5_years = _run_simulation(model, 0, 0.25, 20)
+    results_first_5_years = _run_simulation(model, initial_time=0, current_time=0, dt=0.25, sim_time=20, time_units='Years')
 
     # Prepare a dataframe to store results
     df = pd.DataFrame(results_first_5_years)
@@ -57,23 +58,13 @@ def update_model(model, progression_val, uptake_mci, uptake_early_ad):
         # Clear the previous run
         model.clear_last_run()
 
-        # Run the simulation for the first 5 years
-        model = _run_simulation(model, 0, 0.25, 20)
-
         model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_mci
         model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_early_ad
 
-        results_year = _run_simulation(model, year - 1, year, 1)
-
-        # # Update graph function values based on sliders after year 5
-        # model.graph_functions['Uptake_of_Donanemab_MCI'].xpts = np.array([year])
-        # model.graph_functions['Uptake_of_Donanemab_MCI'].ypts = np.array([model.graph_functions['Uptake_of_Donanemab_MCI'].ypts[-1] + float(uptake_mci)])
-
-        # model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].xpts = np.array([year])
-        # model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].ypts = np.array([model.graph_functions['Uptake_of_Donanemab_early_stage_AD'].ypts[-1] + float(uptake_early_ad)])
+        results_year = _run_simulation(model, initial_time=0, current_time=20, dt=0.25, sim_time=60, time_units='Years')
 
         # Simulate the model for one year at a time
-        results_year = _run_simulation(model, year - 1, year, 1)
+        # results_year = _run_simulation(model, year - 1, year, 1)
 
         # Append results to the dataframe
         df = pd.concat([df, pd.DataFrame(results_year)], ignore_index=True)
@@ -99,7 +90,7 @@ def plot_simulation(df):
     # Add interactivity
     progression_slider.on_change('value', update_plot)
     uptake_mci_slider.on_change('value', update_plot)
-    uptake_early_ad_slider.on_change('value', update_plot)
+    uptake_ad_slider.on_change('value', update_plot)
 
     return p
 
