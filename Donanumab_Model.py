@@ -38,7 +38,7 @@ def _run_simulation(model, initial_time, current_time, dt, sim_time, time_units)
 
     return results
 
-def update_model(model, progression_val, uptake_mci, uptake_early_ad):
+def update_model(model, uptake_mci, uptake_early_ad):
     # Clear the previous run
     model.clear_last_run()
 
@@ -81,13 +81,12 @@ def plot_simulation(df):
     # Update the plot with new data from each subsequent simulation
     def update_plot(attr, old, new):
         # Get new data
-        df_new = update_model(model, progression_slider.value, uptake_mci_slider.value, uptake_early_ad_slider.value)
+        df_new = update_model(model, uptake_mci_slider.value, uptake_early_ad_slider.value)
 
         # Update data source for plot
         p.line(x='Years', y='Diagnosed_early_stage_AD', source=df_new, line_width=2)
 
     # Add interactivity
-    progression_slider.on_change('value', update_plot)
     uptake_mci_slider.on_change('value', update_plot)
     uptake_ad_slider.on_change('value', update_plot)
 
@@ -175,7 +174,7 @@ if model is not None:
                                          key="uptake_ad_slider")
 
     # Simulate the model and plot the results
-    results = update_model(model, str(progression_slider), str(uptake_mci_slider), str(uptake_ad_slider))
+    results = update_model(model, str(uptake_mci_slider), str(uptake_ad_slider))
     df = pd.DataFrame(results)
 
     # Display the results plot
