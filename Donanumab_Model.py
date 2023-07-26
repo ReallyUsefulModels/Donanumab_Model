@@ -43,8 +43,8 @@ def update_model(model, uptake_mci, uptake_early_ad):
     model.clear_last_run()
 
     # Update variables
-    model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_mci
-    model.aux_equations['Uptake_of_Donanemab_Early_AD'] = uptake_early_ad  
+    model.replace_element_equation('Uptake_of_Donanemab_MCI', uptake_mci)
+    model.replace_element_equation('Uptake_of_Donanemab_early_stage_AD', uptake_early_ad)
 
     # Run the simulation for the first 5 years
     results_first_5_years = _run_simulation(model, initial_time=0, current_time=0, dt=0.25, sim_time=20, time_units='Years')
