@@ -100,7 +100,7 @@ def plot_results(df, fig):
     fig.update_xaxes(ticks='outside', tickvals=x_ticks, ticktext=x_labels)
 
     # Set the x-axis range explicitly to cover the entire simulation period
-    fig.update_xaxes(range=[5, max_years])
+    fig.update_xaxes(range=[0, max_years])
 
     # Move the legend below the plot
     fig.update_layout(legend=dict(orientation='h', x=0, y=-0.25))
