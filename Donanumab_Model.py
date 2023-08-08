@@ -34,7 +34,7 @@ def _run_simulation(model, initial_time, current_time, dt, sim_time, time_units)
     # Get the results
     results = model.export_simulation_result()
     results = pd.DataFrame.from_dict(results)
-    results['Years'] = [year * 1 for year in results['Years']]
+    results['Years'] = results.index * 1
 
     return results
 
@@ -47,31 +47,9 @@ def update_model(model, uptake_mci, uptake_early_ad):
     model.replace_element_equation('Uptake_of_Donanemab_early_stage_AD', uptake_early_ad)
 
     # Run the simulation for the first 5 years
-    results_first_5_years = _run_simulation(model, initial_time=0, current_time=0, dt=0.25, sim_time=20, time_units='Years')
+    results = _run_simulation(model, initial_time=0, current_time=0, dt=0.25, sim_time=20, time_units='Years')
 
-    # Prepare a dataframe to store results
-    df = pd.DataFrame(results_first_5_years)
-
-    # Start from year 6 to 21
-    for _ in range(20, 20):
-        # Clear the previous run
-        model.clear_last_run()
-
-        model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_mci
-        model.aux_equations['Uptake_of_Donanemab_MCI'] = uptake_early_ad
-
-        results_year = _run_simulation(model, initial_time=0, current_time=20, dt=0.25, sim_time=60, time_units='Years')
-
-        # Simulate the model for one year at a time
-        # results_year = _run_simulation(model, year - 1, year, 1)
-
-        # Append results to the dataframe
-        df = pd.concat([df, pd.DataFrame(results_year)], ignore_index=True)
-
-    # Ensure 'Years' is unique and increasing
-    df['Years'] = df.index + 1
-
-    return df
+    return pd.DataFrame(results)
 
 def plot_simulation(df):
     # Initialize the plot with the first set of data
@@ -81,7 +59,7 @@ def plot_simulation(df):
     # Update the plot with new data from each subsequent simulation
     def update_plot(attr, old, new):
         # Get new data
-        df_new = update_model(model, uptake_mci_slider.value, uptake_early_ad_slider.value)
+        df_new = update_model(model, uptake_mci_slider.value, uptake_ad_slider.value)
 
         # Update data source for plot
         p.line(x='Years', y='Diagnosed_early_stage_AD', source=df_new, line_width=2)
@@ -122,7 +100,7 @@ def plot_results(df, fig):
     fig.update_xaxes(ticks='outside', tickvals=x_ticks, ticktext=x_labels)
 
     # Set the x-axis range explicitly to cover the entire simulation period
-    fig.update_xaxes(range=[0, max_years])
+    fig.update_xaxes(range=[5, max_years])
 
     # Move the legend below the plot
     fig.update_layout(legend=dict(orientation='h', x=0, y=-0.25))
@@ -154,22 +132,22 @@ if model is not None:
     st.sidebar.title('Variable Sliders')
 
     # Set the default value of the uptake of Donanemab MCI slider
-    st.sidebar.write('Uptake of Donanemab MCI')
+    st.sidebar.write('% Uptake of Donanemab for Mild Cognitive Impairment')
     uptake_mci_slider = st.sidebar.slider('',
-                                          min_value=0.0,
-                                          max_value=1.0,
-                                          value=0.35,
-                                          step=0.05,
+                                          min_value=0,
+                                          max_value=100,
+                                          value=35,
+                                          step=5,
                                           format="%.2f",
                                           key="uptake_mci_slider")
 
     # Set the default value of the uptake of Donanemab early stage AD slider
-    st.sidebar.write('Uptake of Donanemab Early Stage AD')
+    st.sidebar.write('% Uptake of Donanemab for Early Stage Alzheimers Disease')
     uptake_ad_slider = st.sidebar.slider('',
-                                         min_value=0.0,
-                                         max_value=1.0,
-                                         value=0.7,
-                                         step=0.05,
+                                         min_value=0,
+                                         max_value=100,
+                                         value=70,
+                                         step=5,
                                          format="%.2f",
                                          key="uptake_ad_slider")
 
