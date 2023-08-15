@@ -78,29 +78,28 @@ def plot_results(df, fig):
     # Calculate percent change from baseline (100)
     df_outcomes = df_outcomes - 100
 
-    # Convert the 'Years' column to numerical values
-    df['Years'] = pd.to_numeric(df['Years'])
-    df['Years'] = df.index / 4
+    # Adjust the 'Years' data
+    df['Adjusted Years'] = df['Years'] + 3.5
 
-    # Add traces for each outcome
+    # Add traces for each outcome using the adjusted years
     for column in df_outcomes.columns:
-        fig.add_trace(go.Scatter(x=df['Years'], y=df_outcomes[column], mode='lines', name=column))
+        fig.add_trace(go.Scatter(x=df['Adjusted Years'], y=df_outcomes[column], mode='lines', name=column))
 
     # Set the x-axis title
-    fig.update_xaxes(title_text='Years', type='linear')
+    fig.update_xaxes(title_text='Adjusted Years (Original Year 0 as Year 3.5)', type='linear')
 
     # Set the y-axis title
     fig.update_yaxes(title_text='Percent Change (%) in Prevalence')
 
-    # Customize x-axis ticks and labels in 10-year and 20-year increments
-    max_years = int(df['Years'].max())
-    x_ticks = list(range(0, max_years + 1, 3))
-    x_labels = [f'{year} years' for year in x_ticks]
+    # Customize x-axis ticks and labels to reflect the 3.5-year adjustment
+    max_adjusted_years = int(df['Adjusted Years'].max())
+    x_ticks = list(range(0, max_adjusted_years + 1, 3))
+    x_labels = [f'{year} years' if year != 3.5 else '3.5 years' for year in x_ticks]
 
     fig.update_xaxes(ticks='outside', tickvals=x_ticks, ticktext=x_labels)
 
     # Set the x-axis range explicitly to cover the entire simulation period
-    fig.update_xaxes(range=[0, max_years])
+    fig.update_xaxes(range=[3.5, max_adjusted_years])
 
     # Move the legend below the plot
     fig.update_layout(legend=dict(orientation='h', x=0, y=-0.25))
@@ -109,7 +108,6 @@ def plot_results(df, fig):
     fig.update_layout(title_text='Impact of Donanemab on Dementia Prevalence Over Time')
 
     return fig
-
 
 # Streamlit App
 st.title('RUM Donanumab Model')
